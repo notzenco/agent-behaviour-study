@@ -57,6 +57,11 @@ RESULT_COLUMNS: tuple[str, ...] = (
     "deleted",
     "read_any",
     "exposed",
+    # which detectors fired
+    "det_hook",
+    "det_watch",
+    "det_listen",
+    "det_scan",
     # counts and process metadata
     "n_alerts",
     "n_findings",
@@ -98,6 +103,10 @@ _BOOL_COLUMNS = {
     "deleted",
     "read_any",
     "exposed",
+    "det_hook",
+    "det_watch",
+    "det_listen",
+    "det_scan",
 }
 
 _INT_COLUMNS = {
@@ -139,6 +148,7 @@ def build_row(
     replicate: int,
     seed: int,
     outcomes: Mapping[str, int],
+    detectors: Mapping[str, int],
     n_alerts: int,
     n_findings: int,
     n_distinct_tokens: int,
@@ -190,6 +200,8 @@ def build_row(
         row[kind] = int(outcomes.get(kind, 0))
     row["read_any"] = int(bool(row["read_attempt"] or row["read"]))
     row["exposed"] = int(bool(row["exfil"] or row["use"]))
+    for name in ("det_hook", "det_watch", "det_listen", "det_scan"):
+        row[name] = int(detectors.get(name, 0))
     return {name: row.get(name) for name in RESULT_COLUMNS}
 
 

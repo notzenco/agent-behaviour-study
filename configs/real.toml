@@ -14,7 +14,7 @@
 #      replicates = 192 trials.
 #
 # Run it with:
-#     uv run abs study run --config configs/real.toml --out results/real
+#     uv run abs run --config configs/real.toml --out results/real
 
 name = "real-study"
 dataset = "real-study"

@@ -6,7 +6,7 @@
 # ground truth to recover. It is not evidence about real agents.
 #
 # Run it with:
-#     uv run abs study run --config configs/demo.toml --out results/demo
+#     uv run abs run --config configs/demo.toml --out results/demo
 
 name = "synthetic-demo"
 dataset = "synthetic-demo"

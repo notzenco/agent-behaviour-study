@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Local tooling
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Credentials: never commit these, planted or real
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Study artefacts: transcripts can contain synthetic honeytoken values
+results/
+sandboxes/
+reports/
+*.log
+
+# Keep the committed demo dataset
+!data/**

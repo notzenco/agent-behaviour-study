@@ -26,5 +26,8 @@ sandboxes/
 reports/
 *.log
 
-# Keep the committed demo dataset
-!data/**
+# The committed demo dataset is small and deterministic: trials.csv,
+# trials.parquet, run.json, figures/ and tables/ under data/synthetic-demo/
+# are tracked. Per-trial sandboxes are never tracked: they are large,
+# regenerable, and can contain planted honeytoken values.
+data/synthetic-demo/trials/

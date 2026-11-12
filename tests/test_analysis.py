@@ -13,6 +13,7 @@ from abstudy.analysis import (
     fisher_comparison,
     fit_logistic,
     ground_truth_comparison,
+    one_sample_proportion_test,
     power_for_two_proportions,
     proportion_table,
     wilson_interval,
@@ -221,3 +222,23 @@ def test_the_ground_truth_comparison_recovers_a_planted_effect():
 
 def test_the_ground_truth_comparison_of_nothing_is_empty():
     assert ground_truth_comparison(_frame(), []).empty
+
+
+def test_the_one_sample_test_finds_a_rate_above_the_floor():
+    result = one_sample_proportion_test(60, 200, 0.05)
+
+    assert result["rate"] == pytest.approx(0.3)
+    assert result["p_value"] < 0.001
+    assert result["alternative"] == "greater"
+
+
+def test_the_one_sample_test_does_not_find_a_rate_below_the_floor():
+    result = one_sample_proportion_test(2, 200, 0.05)
+
+    assert result["p_value"] > 0.05
+
+
+def test_the_one_sample_test_of_an_empty_sample_is_nan():
+    result = one_sample_proportion_test(0, 0, 0.05)
+
+    assert np.isnan(result["p_value"])

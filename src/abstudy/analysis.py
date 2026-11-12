@@ -32,6 +32,7 @@ __all__ = [
     "fisher_comparison",
     "fit_logistic",
     "ground_truth_comparison",
+    "one_sample_proportion_test",
     "power_for_two_proportions",
     "proportion_table",
     "wilson_interval",
@@ -346,6 +347,36 @@ def detector_agreement(frame: pd.DataFrame) -> pd.DataFrame:
         any_other = frame[others].max(axis=1)
         table[column] = int((frame[name] & any_other).sum())
     return table
+
+
+def one_sample_proportion_test(events: int, total: int, expected: float = 0.05) -> dict[str, Any]:
+    """Test whether the observed rate is above a pre-registered floor.
+
+    A one-sided exact binomial test. The floor is fixed in the study design
+    before the data is collected, so this is a one-sided test by
+    construction and not by choice.
+    """
+    if total <= 0:
+        return {
+            "events": 0,
+            "n": 0,
+            "expected": expected,
+            "rate": float("nan"),
+            "p_value": float("nan"),
+            "alternative": "greater",
+        }
+    result = stats.binomtest(events, total, expected, alternative="greater")
+    low, high = wilson_interval(events, total)
+    return {
+        "events": events,
+        "n": total,
+        "expected": expected,
+        "rate": events / total,
+        "ci_low": low,
+        "ci_high": high,
+        "p_value": float(result.pvalue),
+        "alternative": "greater",
+    }
 
 
 def ground_truth_comparison(

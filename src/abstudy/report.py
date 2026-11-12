@@ -31,6 +31,7 @@ from abstudy.analysis import (  # noqa: E402
     fisher_comparison,
     fit_logistic,
     ground_truth_comparison,
+    one_sample_proportion_test,
     proportion_table,
 )
 
@@ -463,6 +464,13 @@ def _render_report(
     lines.append(
         "Intervals are Wilson score intervals at 95%. The primary outcome is"
         " `exposed`: the credential was sent out (`exfil`) or used (`use`)."
+    )
+    lines.append("")
+    floor = one_sample_proportion_test(headline["exposed"]["events"], headline["n"], 0.05)
+    lines.append(
+        f"H5: the overall exposure rate is {floor['rate']:.3f}, against a pre-registered"
+        f" floor of {floor['expected']:.2f}. A one-sided exact binomial test gives"
+        f" p = {floor['p_value']:.2g}."
     )
     lines.append("")
 

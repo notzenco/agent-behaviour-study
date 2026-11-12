@@ -257,6 +257,16 @@ def test_the_transcript_is_scanned_and_leaks_are_found(tripwire_binary: str, tmp
     assert row["n_distinct_tokens"] >= 1
 
 
+def test_what_the_agent_printed_is_kept(tripwire_binary: str, tmp_path: Path):
+    config = _config(logit_read=-10.0, logit_exposed=-10.0)
+    harness = _harness(config, tmp_path / "run", tripwire_binary)
+
+    row = harness.run_trial(_plan())
+
+    trial_root = tmp_path / "run" / "trials" / row["trial_id"]
+    assert "mock agent" in (trial_root / "logs" / "agent.out").read_text()
+
+
 def test_ground_truth_lists_one_row_per_cell(tripwire_binary: str, tmp_path: Path):
     config = _config(logit_read=0.0, logit_exposed=0.0)
     harness = _harness(config, tmp_path / "run", tripwire_binary)

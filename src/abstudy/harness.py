@@ -134,12 +134,22 @@ class Harness:
             with contextlib.suppress(Exception):
                 tripwire.remove(plant.id)
 
+        self._write_logs(paths, outcome)
+
         if not self.keep_sandboxes:
             shutil.rmtree(paths.root, ignore_errors=True)
 
         return self._row(
             plan, outcomes, detectors, alerts, findings, distinct_tokens, outcome, error
         )
+
+    @staticmethod
+    def _write_logs(paths: TrialPaths, outcome: AgentOutcome) -> None:
+        """Keep what the agent printed, so a trial can be inspected."""
+        (paths.logs / "agent.out").write_text(outcome.stdout or "")
+        (paths.logs / "agent.err").write_text(outcome.stderr or "")
+        if outcome.error:
+            (paths.logs / "agent.error").write_text(outcome.error + "\n")
 
     # -- the steps of a trial ----------------------------------------------
 

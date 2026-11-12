@@ -22,6 +22,7 @@ dependencies = [
 ]
 
 [project.scripts]
+abs = "abstudy.cli:main"
 abstudy = "abstudy.cli:main"
 
 [dependency-groups]

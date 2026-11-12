@@ -177,7 +177,8 @@ class StudyConfig:
         """A deterministic seed for a trial, derived from the run seed."""
         material = f"{self.seed}|{plan.trial_id}".encode()
         digest = hashlib.blake2b(material, digest_size=8).digest()
-        return int.from_bytes(digest, "big")
+        # Kept inside the signed 64-bit range so the seed fits a result column.
+        return int.from_bytes(digest, "big") & 0x7FFFFFFFFFFFFFFF
 
     def describe(self) -> str:
         """A short human summary of the design."""

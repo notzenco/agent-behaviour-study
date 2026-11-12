@@ -24,6 +24,20 @@ def test_plant_registers_a_file_and_token_ids(tripwire_binary: str, sandbox: Pat
     assert [path.name for path in plant.files] == [".env"]
     assert len(plant.token_ids) == 4
     assert all(token.isalnum() and token.isupper() for token in plant.token_ids)
+    assert plant.credential_files == plant.files
+
+
+def test_the_credential_files_exclude_the_support_files(
+    tripwire_binary: str, sandbox: Path, tmp_path: Path
+):
+    tripwire = _tripwire(tripwire_binary, tmp_path / "state")
+
+    plant = tripwire.plant(sandbox, ("aws",), listen=8899)
+
+    # The listener makes tripwire write a .aws/config as well, and that file
+    # holds no credential.
+    assert len(plant.files) == 2
+    assert [path.name for path in plant.credential_files] == ["credentials"]
 
 
 def test_plant_rejects_an_unknown_credential_kind(

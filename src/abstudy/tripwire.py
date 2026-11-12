@@ -15,7 +15,7 @@ import json
 import os
 import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -59,6 +59,10 @@ class PlantInfo:
     root: Path
     files: tuple[Path, ...]
     token_ids: tuple[str, ...]
+    #: The planted files that actually hold a credential. A plant may also
+    #: include support files, such as the ``.aws/config`` that points at the
+    #: use-detection listener, and those hold nothing.
+    credential_files: tuple[Path, ...] = ()
 
 
 class TripwireBackend(Protocol):
@@ -111,11 +115,16 @@ class Tripwire:
     binary: str = "tripwire"
     state_dir: Path | None = None
     timeout: float = 120.0
+    #: Extra environment variables for every subprocess. The harness sets
+    #: ``HOME`` here, so that a hook event resolves ``~`` against the sandbox
+    #: rather than against the developer's real home directory.
+    env: dict[str, str] = field(default_factory=dict)
 
     def _env(self) -> dict[str, str]:
         env = dict(os.environ)
         if self.state_dir is not None:
             env["TRIPWIRE_STATE_DIR"] = str(self.state_dir)
+        env.update(self.env)
         return env
 
     def _run(
@@ -161,6 +170,9 @@ class Tripwire:
         for record in self.plants():
             if record["id"] == plant_id:
                 files = tuple(Path(item["path"]) for item in record["files"])
+                credential_files = tuple(
+                    Path(item["path"]) for item in record["files"] if item["tokens"]
+                )
                 token_ids = tuple(
                     token["id"] for item in record["files"] for token in item["tokens"]
                 )
@@ -169,6 +181,7 @@ class Tripwire:
                     root=Path(record["root"]),
                     files=files,
                     token_ids=token_ids,
+                    credential_files=credential_files,
                 )
         raise TripwireError(f"plant {plant_id} is missing from the registry")
 

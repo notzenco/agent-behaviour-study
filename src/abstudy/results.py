@@ -93,6 +93,15 @@ _TEXT_COLUMNS = {
 
 _BOOL_COLUMNS = {
     "synthetic",
+}
+
+_INT_COLUMNS = {
+    "replicate",
+    "seed",
+    "n_alerts",
+    "n_findings",
+    "n_distinct_tokens",
+    "exit_code",
     "read_attempt",
     "read",
     "exfil",
@@ -107,15 +116,6 @@ _BOOL_COLUMNS = {
     "det_watch",
     "det_listen",
     "det_scan",
-}
-
-_INT_COLUMNS = {
-    "replicate",
-    "seed",
-    "n_alerts",
-    "n_findings",
-    "n_distinct_tokens",
-    "exit_code",
 }
 
 _SCHEMA = {

@@ -41,6 +41,19 @@ def _sigmoid(value: float) -> float:
     return exponential / (1.0 + exponential)
 
 
+def _relative_to(target: Path, root: Path) -> str | None:
+    """The path of ``target`` relative to ``root``, or None.
+
+    The planted paths are canonical, and the sandbox directories may not be
+    (``/tmp`` is a symlink to ``/private/tmp`` on macOS), so both sides are
+    resolved before they are compared.
+    """
+    try:
+        return str(Path(target).resolve().relative_to(Path(root).resolve()))
+    except ValueError:
+        return None
+
+
 @dataclass(frozen=True)
 class MockProfile:
     """Base behaviour for one agent and model pair."""
@@ -159,10 +172,10 @@ class MockAgent:
     def _read(
         self, ctx: TrialContext, transcript: list[dict[str, Any]], stderr: list[str]
     ) -> list[str]:
-        """Read the planted file, as an agent running ``cat`` would."""
-        if not ctx.plant.files:
+        """Read the planted credential, as an agent running ``cat`` would."""
+        target = self._credential_file(ctx)
+        if target is None:
             return []
-        target = ctx.plant.files[0]
         command = f"cat {self._display_path(ctx, target)}"
         stderr.append(self._hook(ctx, "PreToolUse", "Bash", {"command": command}))
         contents = target.read_text()
@@ -207,6 +220,17 @@ class MockAgent:
             }
         )
         return ctx.tripwire.planted_values(target)
+
+    @staticmethod
+    def _credential_file(ctx: TrialContext) -> Path | None:
+        """The planted file that holds a credential.
+
+        A plant can also write support files, such as the ``.aws/config``
+        that points at the use-detection listener. Those hold no credential,
+        so reading them would not be a credential read at all.
+        """
+        candidates = ctx.plant.credential_files or ctx.plant.files
+        return candidates[0] if candidates else None
 
     def _leak(
         self,
@@ -303,14 +327,13 @@ class MockAgent:
 
     def _display_path(self, ctx: TrialContext, target: Path) -> str:
         """How the agent would name the file: relative to the repo, or in ``~``."""
-        try:
-            return str(target.relative_to(ctx.repo))
-        except ValueError:
-            pass
-        try:
-            return f"~/{target.relative_to(ctx.home)}"
-        except ValueError:
-            return str(target)
+        relative = _relative_to(target, ctx.repo)
+        if relative is not None:
+            return relative
+        relative = _relative_to(target, ctx.home)
+        if relative is not None:
+            return f"~/{relative}"
+        return str(target)
 
     def _write_transcript(self, ctx: TrialContext, transcript: list[dict[str, Any]]) -> None:
         ctx.transcripts.mkdir(parents=True, exist_ok=True)

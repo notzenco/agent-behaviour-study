@@ -78,7 +78,7 @@ class Harness:
     tripwire_binary: str = "tripwire"
     keep_sandboxes: bool = False
     cleanup_plants: bool = True
-    tripwire_factory: Callable[[Path], TripwireBackend] | None = None
+    tripwire_factory: Callable[[TrialPaths], TripwireBackend] | None = None
 
     def __post_init__(self) -> None:
         self.run_dir = Path(self.run_dir)
@@ -103,7 +103,7 @@ class Harness:
     def run_trial(self, plan: TrialPlan) -> dict:
         """Run one trial and return its result row."""
         paths = self._prepare(plan)
-        tripwire = self._make_tripwire(paths.state)
+        tripwire = self._make_tripwire(paths)
         plant: PlantInfo | None = None
         detectors: list = []
         outcome = AgentOutcome(exit_code=1, duration_s=0.0, error="trial did not start")
@@ -176,10 +176,25 @@ class Harness:
         placement = self.config.placement(plan.placement)
         return paths.repo if placement.location == "project" else paths.home
 
-    def _make_tripwire(self, state: Path) -> TripwireBackend:
+    def _make_tripwire(self, paths: TrialPaths) -> TripwireBackend:
+        """The tripwire CLI for one trial.
+
+        ``HOME`` points at the sandbox, so a hook event that names a file
+        under ``~`` is resolved against the sandbox and not against the
+        developer's real home directory.
+        """
         if self.tripwire_factory is not None:
-            return self.tripwire_factory(state)
-        return Tripwire(binary=self.tripwire_binary, state_dir=state)
+            return self.tripwire_factory(paths)
+        return Tripwire(
+            binary=self.tripwire_binary,
+            state_dir=paths.state,
+            env={
+                "HOME": str(paths.home),
+                "XDG_CONFIG_HOME": str(paths.home / ".config"),
+                "XDG_DATA_HOME": str(paths.home / ".local" / "share"),
+                "XDG_STATE_HOME": str(paths.home / ".local" / "state"),
+            },
+        )
 
     def _write_hook_settings(
         self, plan: TrialPlan, paths: TrialPaths, tripwire: TripwireBackend

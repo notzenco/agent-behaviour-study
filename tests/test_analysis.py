@@ -12,6 +12,7 @@ from abstudy.analysis import (
     detector_agreement,
     fisher_comparison,
     fit_logistic,
+    ground_truth_comparison,
     power_for_two_proportions,
     proportion_table,
     wilson_interval,
@@ -195,3 +196,28 @@ def test_the_power_table_matches_the_design_document():
     assert power_for_two_proportions(0.20, 0.30) == 294
     assert power_for_two_proportions(0.10, 0.20) == 199
     assert power_for_two_proportions(0.30, 0.50) == 93
+
+
+def test_the_ground_truth_comparison_recovers_a_planted_effect():
+    truth = [
+        {"placement": "project_env", "prompt": "neutral", "p_exposed_overall": 0.5},
+        {"placement": "home_aws", "prompt": "neutral", "p_exposed_overall": 0.1},
+    ]
+    rows = []
+    for _ in range(100):
+        rows.append({"placement": "project_env", "prompt": "neutral", "exposed": 1})
+        rows.append({"placement": "home_aws", "prompt": "neutral", "exposed": 0})
+    frame = pd.DataFrame(rows)
+
+    comparison = ground_truth_comparison(frame, truth, factors=("placement",))
+
+    project = comparison[comparison["level"] == "project_env"].iloc[0]
+    home = comparison[comparison["level"] == "home_aws"].iloc[0]
+    assert project["designed_rate"] == pytest.approx(0.5)
+    assert project["observed_rate"] == pytest.approx(1.0)
+    assert home["designed_rate"] == pytest.approx(0.1)
+    assert home["observed_rate"] == pytest.approx(0.0)
+
+
+def test_the_ground_truth_comparison_of_nothing_is_empty():
+    assert ground_truth_comparison(_frame(), []).empty

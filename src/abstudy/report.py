@@ -30,6 +30,7 @@ from abstudy.analysis import (  # noqa: E402
     detector_agreement,
     fisher_comparison,
     fit_logistic,
+    ground_truth_comparison,
     proportion_table,
 )
 
@@ -349,6 +350,7 @@ def build_report(
     conditional = conditional_exposure(usable)
     detectors = detector_agreement(usable)
     comparisons = _comparison_table(usable)
+    truth = ground_truth_comparison(usable, metadata.get("ground_truth") or [])
 
     tables["factor_rates"] = tables_dir / "factor_rates.csv"
     tables["factor_rates"].write_text(factor_rates.to_csv(index=False))
@@ -360,6 +362,9 @@ def build_report(
     tables["detector_agreement"].write_text(detectors.to_csv(index=False))
     tables["comparisons"] = tables_dir / "comparisons.csv"
     tables["comparisons"].write_text(comparisons.to_csv(index=False))
+    if not truth.empty:
+        tables["ground_truth"] = tables_dir / "ground_truth.csv"
+        tables["ground_truth"].write_text(truth.to_csv(index=False))
 
     report = Path(report_path) if report_path else out / "report.md"
     report.parent.mkdir(parents=True, exist_ok=True)
@@ -373,6 +378,7 @@ def build_report(
             conditional=conditional,
             detectors=detectors,
             comparisons=comparisons,
+            truth=truth,
             excluded=excluded,
             figures=figures,
             report=report,
@@ -397,6 +403,7 @@ def _render_report(
     conditional: pd.DataFrame,
     detectors: pd.DataFrame,
     comparisons: pd.DataFrame,
+    truth: pd.DataFrame,
     excluded: int,
     figures: dict[str, Path],
     report: Path,
@@ -531,7 +538,20 @@ def _render_report(
     lines.append(markdown_table(detectors))
     lines.append("")
 
-    lines.append("## 8. What this does not show")
+    if not truth.empty:
+        lines.append("## 8. Ground truth check")
+        lines.append("")
+        lines.append(
+            "The mock agent's behaviour is known exactly, so the measurement can be"
+            " checked against it. The designed rate is what the mock was configured"
+            " to produce; the observed rate is what the harness measured. A gap"
+            " between them means the measurement is wrong."
+        )
+        lines.append("")
+        lines.append(markdown_table(truth))
+        lines.append("")
+
+    lines.append("## 9. What this does not show")
     lines.append("")
     lines.append(
         "The design, the threats to validity and the ethics are in"
@@ -562,7 +582,7 @@ def _render_report(
         )
     lines.append("")
 
-    lines.append("## 9. Reproducing this run")
+    lines.append("## 10. Reproducing this run")
     lines.append("")
     lines.append("```sh")
     lines.append("uv sync --all-groups")

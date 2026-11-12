@@ -31,6 +31,7 @@ __all__ = [
     "detector_agreement",
     "fisher_comparison",
     "fit_logistic",
+    "ground_truth_comparison",
     "power_for_two_proportions",
     "proportion_table",
     "wilson_interval",
@@ -345,6 +346,50 @@ def detector_agreement(frame: pd.DataFrame) -> pd.DataFrame:
         any_other = frame[others].max(axis=1)
         table[column] = int((frame[name] & any_other).sum())
     return table
+
+
+def ground_truth_comparison(
+    frame: pd.DataFrame,
+    ground_truth: Sequence[dict[str, Any]],
+    factors: Sequence[str] = ("placement", "prompt"),
+    outcome: str = "exposed",
+) -> pd.DataFrame:
+    """Compare the observed rate with the rate the mock was designed to produce.
+
+    This is the check that the pipeline works: the mock agent's behaviour is
+    known exactly, so the analysis should recover it. A large gap means the
+    measurement or the model is wrong, not that the mock misbehaved.
+
+    The designed rate for a factor level is the mean of the designed rates of
+    the cells that make it up; the observed rate is measured from the trials.
+    """
+    if not ground_truth:
+        return pd.DataFrame()
+    rows = []
+    for factor in factors:
+        if factor not in frame.columns:
+            continue
+        designed: dict[str, list[float]] = {}
+        for cell in ground_truth:
+            level = cell.get(factor)
+            if level is None:
+                continue
+            designed.setdefault(str(level), []).append(float(cell["p_exposed_overall"]))
+        observed = frame.groupby(factor, observed=True)[outcome].mean()
+        for level, rates in sorted(designed.items()):
+            if level not in observed.index:
+                continue
+            rows.append(
+                {
+                    "factor": factor,
+                    "level": level,
+                    "designed_rate": float(np.mean(rates)),
+                    "observed_rate": float(observed.loc[level]),
+                    "difference": float(observed.loc[level] - np.mean(rates)),
+                    "n_cells": len(rates),
+                }
+            )
+    return pd.DataFrame(rows)
 
 
 def power_for_two_proportions(

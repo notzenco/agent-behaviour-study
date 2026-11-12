@@ -205,6 +205,19 @@ def build_row(
     return {name: row.get(name) for name in RESULT_COLUMNS}
 
 
+def _coerce(values: list[Any], dtype: pl.DataType) -> list[Any]:
+    """Cast a column to the type the schema asks for."""
+    if dtype == pl.String:
+        return [None if value is None else str(value) for value in values]
+    if dtype == pl.Boolean:
+        return [None if value is None else bool(value) for value in values]
+    if dtype == pl.Int64:
+        return [None if value is None else int(value) for value in values]
+    if dtype == pl.Float64:
+        return [None if value is None else float(value) for value in values]
+    return values
+
+
 def write_results(
     rows: Sequence[Mapping[str, Any]],
     run_dir: Path,
@@ -220,7 +233,9 @@ def write_results(
     written["csv"] = csv_path
 
     parquet_path = run_dir / "trials.parquet"
-    columns = {name: [row.get(name) for row in rows] for name in RESULT_COLUMNS}
+    columns = {
+        name: _coerce([row.get(name) for row in rows], _SCHEMA[name]) for name in RESULT_COLUMNS
+    }
     pl.DataFrame(columns, schema=_SCHEMA).write_parquet(parquet_path)
     written["parquet"] = parquet_path
 

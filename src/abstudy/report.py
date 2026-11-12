@@ -10,6 +10,7 @@ A synthetic run must never be mistaken for a finding about real agents.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -109,14 +110,12 @@ def _rate_figure(frame: pd.DataFrame, metadata: dict[str, Any], path: Path) -> P
             continue
         table = proportion_table(frame, [factor], "exposed")
         positions = np.arange(len(table))
+        lower, upper = _error_bars(table["rate"], table["ci_low"], table["ci_high"])
         axis.bar(positions, table["rate"], color="#4c72b0")
         axis.errorbar(
             positions,
             table["rate"],
-            yerr=[
-                table["rate"] - table["ci_low"],
-                table["ci_high"] - table["rate"],
-            ],
+            yerr=[lower, upper],
             fmt="none",
             ecolor="#222222",
             capsize=4,
@@ -203,11 +202,14 @@ def _outcome_figure(frame: pd.DataFrame, metadata: dict[str, Any], path: Path) -
     figure, axis = plt.subplots(figsize=(8, 4.0))
     labels = [row[0] for row in rows]
     positions = np.arange(len(rows))
+    lower, upper = _error_bars(
+        [row[1] for row in rows], [row[2] for row in rows], [row[3] for row in rows]
+    )
     axis.bar(positions, [row[1] for row in rows], color="#55a868")
     axis.errorbar(
         positions,
         [row[1] for row in rows],
-        yerr=[[row[1] - row[2] for row in rows], [row[3] - row[1] for row in rows]],
+        yerr=[lower, upper],
         fmt="none",
         ecolor="#222222",
         capsize=4,
@@ -221,10 +223,50 @@ def _outcome_figure(frame: pd.DataFrame, metadata: dict[str, Any], path: Path) -
     return _save(figure, path)
 
 
+def _error_bars(rates: Sequence[float], lows: Sequence[float], highs: Sequence[float]):
+    """The lower and upper error bar lengths, clipped at zero.
+
+    A rate of exactly zero or one leaves a Wilson bound a rounding error
+    outside the estimate, and matplotlib rejects a negative error bar.
+    """
+    lower = np.maximum(0.0, np.asarray(rates, dtype=float) - np.asarray(lows, dtype=float))
+    upper = np.maximum(0.0, np.asarray(highs, dtype=float) - np.asarray(rates, dtype=float))
+    return lower, upper
+
+
+def _relative(target: Path, report: Path) -> str:
+    """A link from the report to a figure, relative to the report."""
+    try:
+        return os.path.relpath(target, report.parent)
+    except ValueError:  # pragma: no cover - different drives on Windows
+        return str(target)
+
+
 def _interval(successes: int, total: int) -> tuple[float, float]:
     from abstudy.analysis import wilson_interval
 
     return wilson_interval(successes, total)
+
+
+def _factor_rate_table(frame: pd.DataFrame) -> pd.DataFrame:
+    """The exposure rate for every level of every factor, in one table."""
+    rows = []
+    for factor in FACTORS:
+        if factor not in frame.columns:
+            continue
+        for _, row in proportion_table(frame, [factor], "exposed").iterrows():
+            rows.append(
+                {
+                    "factor": factor,
+                    "level": row[factor],
+                    "n": row["n"],
+                    "events": row["events"],
+                    "rate": row["rate"],
+                    "ci_low": row["ci_low"],
+                    "ci_high": row["ci_high"],
+                }
+            )
+    return pd.DataFrame(rows)
 
 
 def _headline(frame: pd.DataFrame) -> dict[str, Any]:
@@ -303,14 +345,7 @@ def build_report(
 
     headline = _headline(usable)
 
-    factor_rates = pd.concat(
-        [
-            proportion_table(usable, [factor], "exposed").assign(factor=factor)
-            for factor in FACTORS
-            if factor in usable.columns
-        ],
-        ignore_index=True,
-    )
+    factor_rates = _factor_rate_table(usable)
     conditional = conditional_exposure(usable)
     detectors = detector_agreement(usable)
     comparisons = _comparison_table(usable)
@@ -340,6 +375,7 @@ def build_report(
             comparisons=comparisons,
             excluded=excluded,
             figures=figures,
+            report=report,
         )
     )
 
@@ -363,6 +399,7 @@ def _render_report(
     comparisons: pd.DataFrame,
     excluded: int,
     figures: dict[str, Path],
+    report: Path,
 ) -> str:
     synthetic = _is_synthetic(metadata)
     lines: list[str] = []
@@ -424,21 +461,13 @@ def _render_report(
 
     lines.append("## 3. Rate by factor level")
     lines.append("")
-    lines.append(
-        markdown_table(
-            factor_rates[
-                ["factor", "placement", "prompt", "n", "events", "rate", "ci_low", "ci_high"]
-            ]
-            if "placement" in factor_rates.columns
-            else factor_rates
-        )
-    )
+    lines.append(markdown_table(factor_rates))
     lines.append("")
-    lines.append(f"![rate by factor]({figures['rates_by_factor'].name})")
+    lines.append(f"![rate by factor]({_relative(figures['rates_by_factor'], report)})")
     lines.append("")
-    lines.append(f"![placement by prompt]({figures['placement_prompt'].name})")
+    lines.append(f"![placement by prompt]({_relative(figures['placement_prompt'], report)})")
     lines.append("")
-    lines.append(f"![outcomes]({figures['outcomes'].name})")
+    lines.append(f"![outcomes]({_relative(figures['outcomes'], report)})")
     lines.append("")
 
     lines.append("## 4. Logistic model")
@@ -464,7 +493,7 @@ def _render_report(
             lines.append("")
             lines.append(f"Note: {fit.note}.")
         lines.append("")
-        lines.append(f"![odds ratios]({figures['odds_ratios'].name})")
+        lines.append(f"![odds ratios]({_relative(figures['odds_ratios'], report)})")
     lines.append("")
 
     lines.append("## 5. Pairwise comparisons")

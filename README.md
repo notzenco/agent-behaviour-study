@@ -51,8 +51,16 @@ uv run abs run --config configs/demo.toml --out results/demo
 uv run abs analyze --results results/demo --out reports/demo
 ```
 
-Step 3 writes the figures, the tables and `reports/demo/report.md`. The same
-analysis is available as a script that prints the tables to the terminal:
+Step 3 writes the figures, the tables and `reports/demo/report.md`. The
+committed copy of that output is [`REPORT.md`](REPORT.md), with its figures
+and tables under `data/synthetic-demo/`. Rebuild it from scratch with:
+
+```sh
+scripts/regenerate-demo.sh
+```
+
+The same analysis is available as a script that prints the tables to the
+terminal:
 
 ```sh
 uv run python analysis/analyze.py --results results/demo --print-only

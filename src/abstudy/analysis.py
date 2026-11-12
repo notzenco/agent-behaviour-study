@@ -54,7 +54,12 @@ def wilson_interval(successes: int, total: int, confidence: float = 0.95) -> tup
     margin = (
         z * np.sqrt(proportion * (1 - proportion) / total + z**2 / (4 * total**2)) / denominator
     )
-    return (max(0.0, centre - margin), min(1.0, centre + margin))
+    # At the boundaries the exact bound is 0 or 1; centre - margin can land a
+    # rounding error away from it, and which side it lands on is platform
+    # dependent, so snap instead of relying on the clamp.
+    low = 0.0 if successes == 0 else max(0.0, centre - margin)
+    high = 1.0 if successes == total else min(1.0, centre + margin)
+    return (low, high)
 
 
 def proportion_table(

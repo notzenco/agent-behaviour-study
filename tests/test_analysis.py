@@ -35,6 +35,13 @@ def test_the_wilson_interval_stays_inside_the_unit_interval_at_zero():
     assert 0.0 < high < 0.2
 
 
+def test_the_wilson_interval_stays_inside_the_unit_interval_at_one():
+    low, high = wilson_interval(20, 20)
+
+    assert 0.8 < low < 1.0
+    assert high == 1.0
+
+
 def test_the_wilson_interval_is_symmetric_around_a_half():
     low, high = wilson_interval(50, 100)
 

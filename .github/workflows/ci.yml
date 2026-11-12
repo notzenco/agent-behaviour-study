@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: set up python
+        run: uv python install 3.12
+
+      - name: install dependencies
+        run: uv sync --locked --all-groups
+
+      - name: lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: test
+        run: uv run pytest -v
+
+      - name: build the synthetic demo dataset
+        # The study must be able to produce a dataset and analyse it without
+        # spending money on a model. This is the end-to-end check.
+        run: |
+          uv run abs run --config configs/demo.toml --out /tmp/demo --limit 24
+          uv run abs analyze --results /tmp/demo --out /tmp/demo-report
+
+      - name: check that the committed demo dataset still analyses
+        run: |
+          uv run abs analyze --results data/synthetic-demo --out /tmp/committed-report

@@ -171,3 +171,12 @@ def test_the_metadata_round_trips(tmp_path: Path):
 
 def test_missing_metadata_reads_as_empty(tmp_path: Path):
     assert load_metadata(tmp_path) == {}
+
+
+def test_the_reproduce_commands_name_real_cli_subcommands(tmp_path: Path):
+    artifacts = build_report(_frame(), _metadata(), tmp_path)
+
+    text = artifacts.report.read_text()
+    assert "abs run --config" in text
+    assert "abs analyze --results" in text
+    assert "abs study" not in text

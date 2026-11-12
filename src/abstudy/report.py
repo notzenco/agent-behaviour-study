@@ -563,7 +563,7 @@ def _render_report(
     lines.append("")
     lines.append(
         "The design, the threats to validity and the ethics are in"
-        " [docs/study-design.md](../docs/study-design.md). The short version:"
+        " [docs/study-design.md](docs/study-design.md). The short version:"
     )
     lines.append("")
     lines.append(
@@ -595,10 +595,10 @@ def _render_report(
     lines.append("```sh")
     lines.append("uv sync --all-groups")
     lines.append(
-        f"uv run abs study run --config {metadata.get('config_path', 'configs/demo.toml')} \\"
+        f"uv run abs run --config {metadata.get('config_path', 'configs/demo.toml')} \\"
     )
     lines.append(f"    --out results/{metadata.get('dataset', 'run')}")
-    lines.append(f"uv run abs study analyze --results results/{metadata.get('dataset', 'run')} \\")
+    lines.append(f"uv run abs analyze --results results/{metadata.get('dataset', 'run')} \\")
     lines.append(f"    --out reports/{metadata.get('dataset', 'run')}")
     lines.append("```")
     lines.append("")

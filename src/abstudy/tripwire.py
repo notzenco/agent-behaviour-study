@@ -70,9 +70,13 @@ class TripwireBackend(Protocol):
 
     def scan(self, paths: tuple[Path, ...]) -> list[dict[str, Any]]: ...
 
+    def planted_values(self, file: Path) -> list[str]: ...
+
     def alerts(self) -> list[dict[str, Any]]: ...
 
     def hook(self, event: dict[str, Any]) -> str: ...
+
+    def hook_config(self, agent: str) -> dict[str, Any]: ...
 
     def spawn_watch(self, transcripts: tuple[Path, ...], interval_ms: int) -> Any: ...
 
@@ -228,6 +232,15 @@ class Tripwire:
         """Feed one hook event to ``tripwire hook`` and return its stderr."""
         proc = self._run(("hook",), stdin=json.dumps(event), check=False)
         return proc.stderr
+
+    def hook_config(self, agent: str) -> dict[str, Any]:
+        """The hook settings snippet for an agent.
+
+        ``agent`` is ``claude`` or ``codex``. The snippet is the ``hooks``
+        section that has to be merged into the agent's own settings file.
+        """
+        proc = self._run(("hook", "config", agent))
+        return json.loads(proc.stdout)
 
     def spawn_watch(self, transcripts: tuple[Path, ...], interval_ms: int) -> subprocess.Popen[str]:
         args = ["watch", "--interval", str(interval_ms)]

@@ -594,9 +594,7 @@ def _render_report(
     lines.append("")
     lines.append("```sh")
     lines.append("uv sync --all-groups")
-    lines.append(
-        f"uv run abs run --config {metadata.get('config_path', 'configs/demo.toml')} \\"
-    )
+    lines.append(f"uv run abs run --config {metadata.get('config_path', 'configs/demo.toml')} \\")
     lines.append(f"    --out results/{metadata.get('dataset', 'run')}")
     lines.append(f"uv run abs analyze --results results/{metadata.get('dataset', 'run')} \\")
     lines.append(f"    --out reports/{metadata.get('dataset', 'run')}")

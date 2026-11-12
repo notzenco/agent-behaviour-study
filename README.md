@@ -1,7 +1,13 @@
 # agent-behaviour-study
 
+[![ci](https://github.com/notzenco/agent-behaviour-study/actions/workflows/ci.yml/badge.svg)](https://github.com/notzenco/agent-behaviour-study/actions/workflows/ci.yml)
+
 **How often do AI coding agents read or send out credentials they come
 across, and what affects it?**
+
+**Status:** the harness, analysis and report pipeline are complete and
+tested end to end against a scripted mock agent. No real study has been
+run yet; see *Running a real study* below.
 
 A measurement harness and analysis pipeline for the behaviour of coding
 agents around secrets. It builds on
@@ -28,6 +34,7 @@ statistical analysis.
 | [`configs/real.toml`](configs/real.toml) | A template for a study with real agents and real models |
 | [`src/abstudy/`](src/abstudy) | The harness, the analysis and the report builder |
 | [`analysis/analyze.py`](analysis/analyze.py) | The analysis script: figures, tables, model, report |
+| [`scripts/regenerate-demo.sh`](scripts/regenerate-demo.sh) | Rebuild the committed dataset, figures and report from scratch |
 | [`tests/`](tests) | The test suite |
 | [`data/synthetic-demo/`](data/synthetic-demo) | The committed synthetic dataset and its figures |
 | [`REPORT.md`](REPORT.md) | The report for the committed synthetic dataset |
@@ -40,6 +47,9 @@ The demo runs entirely offline. It needs [uv](https://docs.astral.sh/uv/)
 and a `tripwire` binary.
 
 ```sh
+git clone https://github.com/notzenco/agent-behaviour-study
+cd agent-behaviour-study
+
 # 1. Check the tools are there.
 uv sync --all-groups
 uv run abs doctor

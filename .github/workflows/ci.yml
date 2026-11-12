@@ -38,13 +38,19 @@ jobs:
       - name: test
         run: uv run pytest -v
 
-      - name: build the synthetic demo dataset
-        # The study must be able to produce a dataset and analyse it without
-        # spending money on a model. This is the end-to-end check.
+      - name: install the detector
+        id: tripwire
+        continue-on-error: true
+        run: |
+          cargo install --locked --git https://github.com/notzenco/agent-tripwire
+          echo "installed=true" >> "$GITHUB_OUTPUT"
+
+      - name: run and analyse a short synthetic study
+        if: steps.tripwire.outputs.installed == 'true'
         run: |
           uv run abs run --config configs/demo.toml --out /tmp/demo --limit 24
           uv run abs analyze --results /tmp/demo --out /tmp/demo-report
 
-      - name: check that the committed demo dataset still analyses
+      - name: analyse the committed demo dataset
         run: |
           uv run abs analyze --results data/synthetic-demo --out /tmp/committed-report
